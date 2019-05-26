@@ -1,0 +1,14 @@
+# Supposedly an Alpha should exist for Amstelvar but I don't see it
+https://github.com/TypeNetwork/Amstelvar/raw/master/fonts/Amstelvar-Roman-VF106.ttf
+# https://github.com/TypeNetwork/Amstelvar/blob/master/fonts/Amstelvar-Italic-VF106.ttf
+
+# https://github.com/TypeNetwork/Roboto-Delta/raw/master/fonts/RobotoDelta_v2-VF.ttf
+# https://github.com/SorkinType/Merriweather/blob/master/fonts/variable/Merriweather-Roman-VF.ttf
+# https://github.com/SorkinType/Merriweather/blob/master/fonts/variable/Merriweather-Roman-VF.ttf
+
+# Supposedly https://github.com/clauseggers/Playfair-Display is VF but I see instances
+# https://github.com/sponcey/Fraunces/blob/master/fonts/Fraunces-VF.ttf
+# https://github.com/sponcey/Fraunces/blob/master/fonts/FrauncesItalic-VF.ttf
+
+# TODO: https://github.com/CommercialType/RobotoSerif
+# https://github.com/TypeNetwork/Roboto-Extremo/blob/master/fonts/RobotoExtremo-VF.ttf
