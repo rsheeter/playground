@@ -97,8 +97,11 @@ def _instance_size(font_file, axis_limits):
     except Exception:
       print('FAILED TO INSTANCE %s at %s' % (font_file, axis_limits))
       print(traceback.print_exc())
-      return -1
-  return len(_save_to_bytes(font).getbuffer())
+      return (-1, -1)
+  ttf_sz = len(_save_to_bytes(font).getbuffer())
+  font.flavor = 'woff2'
+  woff2_sz = len(_save_to_bytes(font).getbuffer())
+  return (ttf_sz, woff2_sz)
 
 def _measure_sizes(font_file):
   print('measuring %s' % font_file)
@@ -107,9 +110,9 @@ def _measure_sizes(font_file):
   for axes_retained in _axis_combinations(axes):
     axis_limits = {tag:None for tag in (axes - axes_retained) | ignored}
     print('%s retain %s drop %s)...' % (os.path.basename(font_file), sorted(axes_retained), sorted(axis_limits.keys())))
-    size = _instance_size(font_file, axis_limits)
-    print('%s %s %d bytes.' % (os.path.basename(font_file), sorted(axes_retained), size))
-    yield (axes_retained, size, axis_limits.keys())
+    ttf_sz, woff2_sz = _instance_size(font_file, axis_limits)
+    print('%s %s %d byte ttf, %d byte woff2.' % (os.path.basename(font_file), sorted(axes_retained), ttf_sz, woff2_sz))
+    yield (axes_retained, ttf_sz, woff2_sz)
 
 def _test_assets():
   if FLAGS.download:
@@ -120,7 +123,7 @@ def _test_assets():
 
 def _init_output():
   with open(FLAGS.output_csv, 'w') as f:
-    f.write('file, axis_removed, axes_retained, size_with_ttf, size_without_ttf\n')
+    f.write('file, axes, axis_removed, ttf_before, ttf_after, woff2_before, woff2_after\n')
 
 def _output_and_print(line):
   print(line)
@@ -137,21 +140,21 @@ def main(_):
 
   _init_output()
   for font_file in font_files:
-    size_by_axes = {axes:(size, dropped) for axes, size, dropped in _measure_sizes(font_file)}
+    size_by_axes = {axes:(ttf_sz, woff2_sz) for axes, ttf_sz, woff2_sz in _measure_sizes(font_file)}
     axes = _axes(font_file)
     for axis in sorted(axes):
       # print sizes between ever combination w/o axis and the same with it
       # purely for convenience in making spreadsheet downstream
       for without_axis in _axis_combinations(axes - {axis}):
         with_axis = without_axis | {axis}
-        size_with_axis, _ = size_by_axes[with_axis]
-        size_without_axis, _ = size_by_axes[without_axis]
-        _output_and_print('%s, %s, "%s", %d, %d' % (
+        size_before_ttf, size_before_woff2 = size_by_axes[with_axis]
+        size_after_ttf, size_after_woff2 = size_by_axes[without_axis]
+        _output_and_print('%s, "%s", %s, %d, %d, %d, %d' % (
           os.path.basename(font_file),
-          axis,
           ','.join(sorted(with_axis)),
-          size_with_axis,
-          size_without_axis))
+          axis,
+          size_before_ttf, size_after_ttf,
+          size_before_woff2, size_after_woff2))
   print('Results in %s' % FLAGS.output_csv)
 
 
