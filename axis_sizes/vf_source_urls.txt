@@ -1,0 +1,21 @@
+
+https://github.com/TypeNetwork/Amstelvar/blob/amstelvar-alpha/fonts/AmstelvarAlpha-VF.ttf
+
+# Amstelvar annoyingly includes version in name, often needs update
+https://github.com/TypeNetwork/Amstelvar/blob/master/fonts/Amstelvar-Roman-VF107.ttf
+https://github.com/TypeNetwork/Amstelvar/blob/master/fonts/Amstelvar-Italic-VF107.ttf
+
+https://github.com/TypeNetwork/Roboto-Delta/raw/master/fonts/RobotoDelta_v2-VF.ttf
+https://github.com/SorkinType/Merriweather/blob/master/fonts/variable/Merriweather-Roman-VF.ttf
+https://github.com/SorkinType/Merriweather/blob/master/fonts/variable/Merriweather-Roman-VF.ttf
+
+# Supposedly https://github.com/clauseggers/Playfair-Display is VF but I see instances
+
+https://github.com/sponcey/Fraunces/blob/master/fonts/Fraunces-VF.ttf
+https://github.com/sponcey/Fraunces/blob/master/fonts/FrauncesItalic-VF.ttf
+
+# TODO public url
+# For now download manually and drop into /tmp/axis_sizes/fonts/
+# At time of writing must ttx and convert 
+# https://github.com/TypeNetwork/Roboto-Extremo/blob/master/fonts/RobotoExtremoD-VF.ttf
+# TODO RobotoSerif

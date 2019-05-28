@@ -12,14 +12,16 @@ import traceback
 
 FLAGS = flags.FLAGS
 
+flags.DEFINE_boolean('registered_only', True, 'Whether to try leave non-registered tables ')
 flags.DEFINE_string('temp_dir', '/tmp/axis_sizes', 'Scratch directory')
-flags.DEFINE_boolean('download', True, 'Whether to download samples')
+flags.DEFINE_boolean('download', True, 'Whether to try to download samples')
+flags.DEFINE_string('output_csv', '/tmp/axis_sizes.csv', 'Scratch directory')
 
 def _font_dir():
   return os.path.join(FLAGS.temp_dir, 'fonts')
 
 def _vf_source_urls():
-  with open('sample_fonts.txt', 'r') as f:
+  with open('vf_source_urls.txt', 'r') as f:
     lines = [l.strip() for l in f.readlines() if not l.startswith('#')]
   return [l for l in lines if l]
 
@@ -57,11 +59,20 @@ def _isVF(font_file):
     return False
   return True
 
-def _axes(font_file):
+def _all_axes(font_file):
   font = _ttFont(font_file)
   if not 'fvar' in font:
-    return set()
+    return frozenset()
   return frozenset({a.axisTag for a in font['fvar'].axes})
+
+def _axes(font_file):
+  axes = _all_axes(font_file)
+  if FLAGS.registered_only:
+    axes = {a for a in axes if a == a.lower()}
+  return frozenset(axes)
+
+def _ignored_axes(font_file):
+  return _all_axes(font_file) - _axes(font_file)
 
 def _axis_combinations(axes):
   for i in range(len(axes)):
@@ -92,12 +103,13 @@ def _instance_size(font_file, axis_limits):
 def _measure_sizes(font_file):
   print('measuring %s' % font_file)
   axes = _axes(font_file)
+  ignored = _ignored_axes(font_file)
   for axes_retained in _axis_combinations(axes):
-    axis_limits = {tag:None for tag in axes - axes_retained}
+    axis_limits = {tag:None for tag in (axes - axes_retained) | ignored}
     print('%s retain %s drop %s)...' % (os.path.basename(font_file), sorted(axes_retained), sorted(axis_limits.keys())))
     size = _instance_size(font_file, axis_limits)
     print('%s %s %d bytes.' % (os.path.basename(font_file), sorted(axes_retained), size))
-    yield (axes_retained, size)
+    yield (axes_retained, size, axis_limits.keys())
 
 def _test_assets():
   if FLAGS.download:
@@ -106,27 +118,41 @@ def _test_assets():
   font_files = [os.path.join(_font_dir(), f) for f in os.listdir(_font_dir())]
   return sorted([f for f in font_files if _isVF(f)])
 
+def _init_output():
+  with open(FLAGS.output_csv, 'w') as f:
+    f.write('file, axis_removed, axes_retained, size_with_ttf, size_without_ttf\n')
+
+def _output_and_print(line):
+  print(line)
+  with open(FLAGS.output_csv, 'a') as f:
+    f.write(line)
+    f.write('\n')
+
 def main(_):
   font_files = _test_assets()
   for font_file in font_files:
-    print('%s {%s}' % (font_file, ','.join(sorted(_axes(font_file)))))
+    print('%s consider {%s} ignore {%s}' % (font_file, 
+      ','.join(sorted(_axes(font_file))),
+      ','.join(sorted(_ignored_axes(font_file)))))
 
-  print('file, axis_removed, axes_retained, size_with_ttf, size_without_ttf')
+  _init_output()
   for font_file in font_files:
-    size_by_axes = {axes:size for axes, size in _measure_sizes(font_file)}
-    for axis in sorted(_axes(font_file)):
+    size_by_axes = {axes:(size, dropped) for axes, size, dropped in _measure_sizes(font_file)}
+    axes = _axes(font_file)
+    for axis in sorted(axes):
       # print sizes between ever combination w/o axis and the same with it
       # purely for convenience in making spreadsheet downstream
       for without_axis in _axis_combinations(axes - {axis}):
         with_axis = without_axis | {axis}
-        size_with_axis = size_by_axes[with_axis]
-        size_without_axis = size_by_axes[without_axis]
-        print('%s, %s, "%s", %d, %d' % (
+        size_with_axis, _ = size_by_axes[with_axis]
+        size_without_axis, _ = size_by_axes[without_axis]
+        _output_and_print('%s, %s, "%s", %d, %d' % (
           os.path.basename(font_file),
           axis,
           ','.join(sorted(with_axis)),
           size_with_axis,
           size_without_axis))
+  print('Results in %s' % FLAGS.output_csv)
 
 
 if __name__ == '__main__':
