@@ -5,3 +5,5 @@
 *  Install other dependencies into your virtual environment:
    *  `pip install absl-py`
    *  `pip install brotli`
+*  Download the font(s) you want to analyze into `/tmp/axis_sizes/fonts`
+*  Run `./axis-sizes.py`
