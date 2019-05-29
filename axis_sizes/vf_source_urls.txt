@@ -16,6 +16,10 @@ https://github.com/sponcey/Fraunces/blob/master/fonts/FrauncesItalic-VF.ttf
 
 # TODO public url
 # For now download manually and drop into /tmp/axis_sizes/fonts/
-# At time of writing must ttx and convert 
-# https://github.com/TypeNetwork/Roboto-Extremo/blob/master/fonts/RobotoExtremoD-VF.ttf
-# TODO RobotoSerif
+# At time of writing must ttx and convert
+ https://github.com/TypeNetwork/Roboto-Extremo/blob/master/fonts/RobotoExtremoD-VF.ttf
+
+# must un-woff2
+https://github.com/CommercialType/RobotoSerif/blob/master/docs/190503RobotoSerifOpSzWeight/Roboto%20Serif%20WebFonts/RobotoSerifOpSzWeight190503-VF.woff2
+
+https://github.com/googlefonts/noto-fonts/blob/master/phaseIII_only/unhinted/variable-ttf/NotoSansMono-VF.ttf
