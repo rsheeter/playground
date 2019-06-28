@@ -13,12 +13,13 @@ import traceback
 FLAGS = flags.FLAGS
 
 flags.DEFINE_boolean('registered_only', True, 'Whether to try leave non-registered tables ')
+flags.DEFINE_string('font_dir', '/tmp/axis_sizes/fonts', 'Where to find the fonts')
 flags.DEFINE_string('temp_dir', '/tmp/axis_sizes', 'Scratch directory')
 flags.DEFINE_string('output_csv', '/tmp/axis_sizes.csv', 'Scratch directory')
 flags.DEFINE_string('filter', None, 'filename regex')
 
 def _font_dir():
-  return os.path.join(FLAGS.temp_dir, 'fonts')
+  return FLAGS.font_dir
 
 def _local_file(font_url):
   return os.path.join(_font_dir(), font_url.rpartition('/')[2])
