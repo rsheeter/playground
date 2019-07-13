@@ -74,13 +74,13 @@ At render-time we know quite a lot about what features of the font are desired. 
 
 ### Variable font axis matching
 
-**Why?** Variable fonts size increases substantially (roughly `2^#axes` in some cases) as axes are added. There are cases where sending instances is much cheaper (in file size) than sending a whole variable font. For example, imagine that the font family A has `wdth` and `wght` axes, and it's size doubles for each (that is, the entire variable font is 4x the size of a typical instance). If a user wants Light, Expanded and Regular, Normal (two positions in the two-dimensional space) then cost in bytes for fonts is halved by sending two instances vs the single variable font.
+**Motivation** Variable fonts size increases substantially (roughly `2^#axes` in some cases) as axes are added.
+
+There are cases where sending instances is much cheaper (in file size) than sending a whole variable font. For example, imagine that the font family A has `wdth` and `wght` axes, and it's size doubles for each (that is, the entire variable font is 4x the size of a typical instance). If a user wants Light, Expanded and Regular, Normal (two positions in the two-dimensional space) then cost in bytes for fonts is halved by sending two instances vs the single variable font.
 
 TODO link to VF size data
 
-**Problem**
-
-However, we are stymied by lack of ability to match on arbitrary axes:
+**CSS issue** We can't match on arbitrary axes:
 
 ```css
 /**
@@ -102,11 +102,16 @@ However, we are stymied by lack of ability to match on arbitrary axes:
 }
 ```
 
-**Suggested Solution**
-
-TODO suggest a fix :)
+**Suggested solution** TODO exact suggested fix :)
 
 ### Variable font named instance matching
+
+**Motivation** Variable fonts size increases substantially (roughly `2^#axes` in some cases) as axes are added.
+
+A user may wish to use named instances that are positioned in variation space such that sending instances would be cheaper than an entire variable font. A user may wish to use multiple instances from a single face, currently this is tiresome to achieve.
+
+**CSS issue** We can't use multiple instances from a given `@font-face`
+
 [font-named-instance](https://www.w3.org/TR/css-fonts-4/#font-named-instance) permits a single named instance for an `@font-face`. [feature-variation-precedence](https://www.w3.org/TR/css-fonts-4/#feature-variation-precedence) allows the named instance to be applied.
 
 Named instances do not participate in *matching* at all. This makes use of multiple named instances awkward:
@@ -149,5 +154,7 @@ Consider this sketch:
 Ideally font-named-instance would be legal on all elements and allow multiple values in a fallback chain that included family name at each step (use "Bold" instance of "Roboto", failing that the "Medium" instance of "Open Sans").
 
 On @font-face we would want multiple names as well, either via font-family list or allowing a font-named-instance list.
+
+**Suggested solution** TODO exact suggested fix :)
 
 ### Italic and slant
