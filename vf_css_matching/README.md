@@ -15,9 +15,13 @@ This document outlines potential changes to the style matching algorithm to addr
 The CSS4 [style matching algorithm](https://www.w3.org/TR/css-fonts-4/#font-style-matching) is roughly:
 
 ```
-Given a family name:
+Step 1: Take the first value from the computed font-family property of element
+Step 2: If family name is a generic keyword, resolve it
+Step 3: If family name is NOT a generic keyword find font faces
+    Search @font-face rules then installed fonts
 
-Steps 1-3: Find all the @font-face’s that match by family name.
+NOTE: we're only interested in the @font-face case in this document
+
 Step 4: Pick a specific @font-face. 
     A VF matches as the position with the best matching characteristics.
 
