@@ -98,8 +98,7 @@ Jason Pamental wrote this up in [state of Italics in variable font](https://mail
 
 1.  It's impossible to declare a *range* of italic with `font-style`
     1.  [Roslindale](https://djr.com/notes/roslindale-variable-italic-font-of-the-month/) shows that there is more possible with `ital` than a binary on/off.
-1.  Browsers may synthesize italic *on top of italic* in some situations; this seems like it's purely a bug
-    1.  `font-style: oblique 0deg 20deg;` should **not** enable the Italic axis
+1.  Browsers may synthesize italic *on top of italic* in some situations
 1.  It's impossible to declare italic *and* slant on the same font using `font-style`
 
 We ideally need `font-style` to permit ranges of both italic and slant together, and matching to accomodate.
