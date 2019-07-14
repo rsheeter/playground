@@ -106,8 +106,12 @@ We ideally need `font-style` to permit ranges of both italic and slant together,
 
 **Suggested solution (short term)**
 
-1.   Specify that if an element is styled `italic` and it matches a font with an `ital` axis then `ital` should be set to the largest supported value <= 1 and no synthesis of italic should occur. 
-1.   Specify that if an element is styled `normal` and it matches a font with an `ital` axis then `ital` should be set to the min supported value >= 0.
+In [7.2 Feature and variation precedence](https://drafts.csswg.org/css-fonts-4/#feature-variation-precedence), when applying variations for `font-style`, specify that:
+
+1.   If an element is styled `italic` and matches a font with an `ital` axis 
+     then `ital` should be set to the largest supported value <= 1 and no synthesis of italic should occur. 
+1.   If an element is styled `normal` and it matches a font with an `ital` axis 
+     then `ital` should be set to the min supported value >= 0.
 
 Example:
 
