@@ -4,10 +4,10 @@ Google Fonts strives to have users "pay" (in bytes and resulting latency) only f
 
 We are encountering problems with the current [style matching algorithm](https://www.w3.org/TR/css-fonts-4/#font-style-matching) in several areas:
 
-1.  Feature-based matching
-1.  Variable font matching on arbitrary axes
-1.  Variable font matching for named instances
-1.  Matching italic + slant (spec seems to think of them as exclusive choices)
+1.  [Variable font axis matching](#variable-font-axis-matching)
+1.  [Italic and Slant](#italic-and-slant)
+1.  [Variable font named instance matching](#variable-font-named-instance-matching)
+1.  [Variant based matching](#variant-based-matching)
 
 This document outlines potential changes to the style matching algorithm to address each area. "Variable fonts" is abbreviated "VF" throughout.
 
