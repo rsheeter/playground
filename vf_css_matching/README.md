@@ -94,7 +94,7 @@ TODO link to VF size data
 
 **CSS issue** Today `ital` behaves inconsistently.
 
-Jason Pamental wrote this up in [state of Italics in variable font](https://mailchi.mp/444e7a454775/web-typography-news-20-contextual-stylistics-and-other-fake-band-names). A few main problems seem to pop out:
+Jason Pamental wrote this up in [state of Italics in variable font](https://medium.com/web-typography-news/getting-bent-the-current-state-of-italics-in-variable-font-support-ad7f37ad3b55). A few main problems seem to pop out:
 
 1.  It's impossible to declare a *range* of italic with `font-style`
     1.  [Roslindale](https://djr.com/notes/roslindale-variable-italic-font-of-the-month/) shows that there is more possible with `ital` than a binary on/off.
