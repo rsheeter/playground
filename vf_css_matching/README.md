@@ -88,9 +88,73 @@ TODO link to VF size data
 **Suggested solution** TODO exact suggested fix :)
 
 
-### Italic and slant
+### Italic and Slant
 
-TODO
+**Motivation** Use of `ital` and `slnt` axes should be simple.
+
+**CSS issue** Today `ital` behaves inconsistently.
+
+Jason Pamental wrote this up in [state of Italics in variable font](https://mailchi.mp/444e7a454775/web-typography-news-20-contextual-stylistics-and-other-fake-band-names). A few main problems seem to pop out:
+
+1.  It's impossible to declare a *range* of italic with `font-style`
+    1.  [Roslindale](https://djr.com/notes/roslindale-variable-italic-font-of-the-month/) shows that there is more possible with `ital` than a binary on/off.
+1.  Browsers may synthesize italic *on top of italic* in some situations; this seems like it's purely a bug
+    1.  `font-style: oblique 0deg 20deg;` should **not** enable the Italic axis
+1.  It's impossible to declare italic *and* slant on the same font using `font-style`
+
+We ideally need `font-style` to permit ranges of both italic and slant together, and matching to accomodate.
+
+**Suggested solution (short term)**
+
+1.   Specify that if an element is styled `italic` and it matches a font with an `ital` axis then `ital` should be set to the largest supported value <= 1 and no synthesis of italic should occur. 
+1.   Specify that if an element is styled `normal` and it matches a font with an `ital` axis then `ital` should be set to the min supported value >= 0.
+
+Example:
+
+```css
+/** Assume my-vf.woff2 supports ital 0.25-0.75
+@font-face {
+  src: url('my-vf.woff2') format("woff2-variations");
+  font-family: 'A';
+}
+
+/* Element styled use-norm should render using 'ital' 0.25 and NOT perform synthesis */
+.use-norm {
+  font-family: 'A'
+}
+
+/* Element styled use-norm should render using 'ital' 0.75 and NOT perform synthesis */
+.use-ital {
+  font-family: 'A'
+  font-style: italic;
+}
+```
+
+**Suggested solution (long term)**
+
+Allow an optional range of italic to be specified for [font-style](https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-style):
+
+```
+OLD: Value: auto | normal | italic | oblique [<angle> | <angle> <angle>]?
+NEW: Value: auto | normal | [[italic [<ital> | <ital> <ital>]?] [oblique [<angle> | <angle> <angle>]?]]]!
+
+<ital> should be a value in [0, 1] (the 'ital' axis space).
+
+This allows font-style to express a region in the 2d space of ital,slnt:
+
+font-style: normal oblique;
+font-style: italic oblique;
+font-style: italic 0 1 oblique -89 89;
+font-style: italic 0.3 0.7 oblique 0 15;
+```
+
+[font-style](https://drafts.csswg.org/css-fonts-4/#propdef-font-style) for elements values can remain unchanged because ital 0/1 is expected to be by far the most common usage. Values would have the following meanings:
+
+```
+normal            Matches a face that is neither italic nor oblique. That is matches as italic 0, oblique 0.
+italic            Matches a face with any non-0 italic, or non-0 oblique if no face declaring italic exists.
+oblique <angle>?  Matches as before
+```
 
 ### Variable font named instance matching
 
