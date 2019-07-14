@@ -55,49 +55,6 @@ Note that the selection of @font-face is limited to {family name, width, style, 
 
 Changes aim to increase the range of scenarios where only the content that is needed gets downloaded.
 
-### Variant based matching
-
-TODO why is this important? supporting data
-
-**Motivation** Make it possible to deliver specialized content only to users that need it.
-
-At render-time we know quite a lot about what features of the font are desired. Unfortunately we can't use any of this at matching time. If features could participate in matching we could subset fonts based on feature and match only the ones in use. For example:
-
-```css
-/* Only downloads if text exists that wants family "A", small-caps */
-@font-face {
-  font-family: “A”;
-  font-variant: small-caps;
-  src: url(A-small-caps.woff2);
-}
-
-/* Downloads for any non-small-caps use of A */
-@font-face {
-  font-family: “A”;
-  src: url(A.woff2);
-}
-```
-**CSS issue** We can't match on features
-
-**Suggested solution** Insert a new matching step.
-
-```
-4.5 Find the set of faces that match best by weight (font-weight), discard others
-    Font-weight supports int [1,1000] so we have fine-grained matching on ‘wght’
-**NEW** Find the set of faces that match best by feature
-4.6 font-size must be matched within UA-selected tolerance
-```
-
-Allow font-variant to be specified on `@font-face`.
-
-During matching insert a new step between 4.5 and 4.6:
-
-1.  Collect font-variant (including subproperties) values for the element
-1.  Match `@font-face` that have any of the `font-variant` values for the element and `@font-face` rules that don't set `font-variant` at all
-
-In the example above a run of small-cap text will match both faces, then select the small-caps variant as higher priority in step 4.7. Text that uses font-family A that doesn't use small-caps will match the font-variant'less `@font-face`.
-
-
 ### Variable font axis matching
 
 **Motivation** Variable fonts size increases substantially (roughly `2^#axes` in some cases) as axes are added.
@@ -129,6 +86,11 @@ TODO link to VF size data
 ```
 
 **Suggested solution** TODO exact suggested fix :)
+
+
+### Italic and slant
+
+TODO
 
 ### Variable font named instance matching
 
@@ -183,4 +145,44 @@ On @font-face we would want multiple names as well, either via font-family list 
 
 **Suggested solution** TODO exact suggested fix :)
 
-### Italic and slant
+### Variant based matching
+
+TODO why is this important? supporting data
+
+**Motivation** Make it possible to deliver specialized content only to users that need it.
+
+At render-time we know quite a lot about what features of the font are desired. Unfortunately we can't use any of this at matching time. If features could participate in matching we could subset fonts based on feature and match only the ones in use. For example:
+
+```css
+/* Only downloads if text exists that wants family "A", small-caps */
+@font-face {
+  font-family: “A”;
+  font-variant: small-caps;
+  src: url(A-small-caps.woff2);
+}
+
+/* Downloads for any non-small-caps use of A */
+@font-face {
+  font-family: “A”;
+  src: url(A.woff2);
+}
+```
+**CSS issue** We can't match on features
+
+**Suggested solution** Insert a new matching step.
+
+```
+4.5 Find the set of faces that match best by weight (font-weight), discard others
+    Font-weight supports int [1,1000] so we have fine-grained matching on ‘wght’
+**NEW** Find the set of faces that match best by feature
+4.6 font-size must be matched within UA-selected tolerance
+```
+
+Allow font-variant to be specified on `@font-face`.
+
+During matching insert a new step between 4.5 and 4.6:
+
+1.  Collect font-variant (including subproperties) values for the element
+1.  Match `@font-face` that have any of the `font-variant` values for the element and `@font-face` rules that don't set `font-variant` at all
+
+In the example above a run of small-cap text will match both faces, then select the small-caps variant as higher priority in step 4.7. Text that uses font-family A that doesn't use small-caps will match the font-variant'less `@font-face`.
