@@ -7,6 +7,15 @@ import typing
 import os
 import zipfile
 import pprint
+from absl import app
+from absl import flags
+from fontTools.svgLib.path import SVGPath
+from fontTools.pens.basePen import AbstractPen
+
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string('input', '', 'Sketch file or svg file.')
+
 
 # https://developer.sketch.com/reference/api/#rectangle
 class Rectangle(typing.NamedTuple):
@@ -28,6 +37,7 @@ class Point(typing.NamedTuple):
 
 # https://developer.sketch.com/reference/api/#curvepoint
 class CurvePoint(typing.NamedTuple):
+  point: Point
   curveFrom: Point
   curveTo: Point
 
@@ -53,6 +63,40 @@ class Document(typing.NamedTuple):
 _FIELD_MAP = {
   'id': 'do_objectID',
 }
+
+# ref fonttools/Lib/fontTools/pens/basePen.py 
+class SketchPen(AbstractPen):
+  def __init__(self):
+    self.points = []
+
+  def moveTo(self, p0):
+    pt = Point(p0[0], p0[1])
+    self.points.append(CurvePoint(pt, pt, pt))
+
+  def lineTo(self, p1):
+    pt = Point(p1[0], p1[1])
+    self.points.append(CurvePoint(pt, pt, pt))
+
+  def qCurveTo(self, *points):
+    #self.points.append(('qCurveTo', points))
+    print('qCurveTo')
+    pass
+
+  def curveTo(self, *points):
+    #self.points.append(('curveTo', points))
+    print('curveTo')
+    pass
+
+  def closePath(self):
+    print('closePath')
+    pass
+
+  def endPath(self):
+    print('endPath')
+    pass
+
+  def points(self):
+    return points
 
 def _read_json(zip_file, path):
   with zip_file.open(path) as f:
@@ -118,9 +162,20 @@ def _print(a_tuple, depth=0):
       print(f'{pad}{field_name} = {field_value}')
 
 
-def main():
-  doc = _load_sketch_file('./Sketch1Icon.sketch')
-  _print(doc)
+def main(argv):
+  _, ext = os.path.splitext(FLAGS.input)
+  if ext == '.sketch':
+    doc = _load_sketch_file(FLAGS.input)
+    _print(doc)
+  elif ext == '.svg':
+    pen = SketchPen()
+
+    path = SVGPath(FLAGS.input)
+    path.draw(pen)
+
+    _print(Layer('artboard', 'Artboard', Rectangle(0, 0, 10, 20), [], pen.points))
+  else:
+    raise ValueError(f'What to do with {FLAGS.input}')
 
 if __name__ == '__main__':
-  main()
+  app.run(main)
