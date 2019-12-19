@@ -1,34 +1,38 @@
 #!/usr/bin/env python3
-from __future__ import annotations  # enable recursive tuples
 
-import json
 import collections
-import typing
+import dataclasses
+import json
 import os
-import zipfile
 import pprint
+import typing
+import zipfile
 from absl import app
 from absl import flags
 from fontTools.svgLib.path import SVGPath
 from fontTools.pens.basePen import AbstractPen
 
+_BLANK_SKETCH_FILE = '1-blank.sketch'
+
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('input', '', 'Sketch file or svg file.')
+flags.DEFINE_string('output', '', 'Sketch file, produced from svg.')
 
 
 # https://developer.sketch.com/reference/api/#rectangle
-class Rectangle(typing.NamedTuple):
-  x: int
-  y: int
-  width: int
-  height: int
+@dataclasses.dataclass
+class Rectangle:
+  x: int = 0
+  y: int = 0
+  width: int = 0
+  height: int = 0
 
 # https://developer.sketch.com/reference/api/#point
-class Point(typing.NamedTuple):
-  x: float
-  y: float
-
+@dataclasses.dataclass
+class Point:
+  x: float = 0
+  y: float = 0
 
   # init from a sketch file point: {x, y}
   def _parse(point_str):
@@ -36,29 +40,33 @@ class Point(typing.NamedTuple):
     return Point(x, y)
 
 # https://developer.sketch.com/reference/api/#curvepoint
-class CurvePoint(typing.NamedTuple):
-  point: Point
-  curveFrom: Point
-  curveTo: Point
+@dataclasses.dataclass
+class CurvePoint:
+  point: Point = Point()
+  curveFrom: Point = Point()
+  curveTo: Point = Point()
 
 # https://developer.sketch.com/reference/api/#layer
-class Layer(typing.NamedTuple):
+@dataclasses.dataclass
+class Layer:
   id: str
   name: str
-  frame: Rectangle
-  layers: typing.List[Layer]
-  points: typing.List[CurvePoint]
+  frame: Rectangle = Rectangle()
+  layers: typing.List['Layer'] = dataclasses.field(default_factory=list)
+  points: typing.List[CurvePoint] = dataclasses.field(default_factory=list)
 
 # https://developer.sketch.com/reference/api/#page
-class Page(typing.NamedTuple):
+@dataclasses.dataclass
+class Page:
   id: str
   name: str
-  layers: typing.List[Layer]
-  frame: Rectangle
+  layers: typing.List[Layer] = dataclasses.field(default_factory=list)
+  frame: Rectangle = Rectangle()
 
-class Document(typing.NamedTuple):
+@dataclasses.dataclass
+class Document:
   id: str
-  pages: typing.List[Page]
+  pages: typing.List[Page] = dataclasses.field(default_factory=list)
 
 _FIELD_MAP = {
   'id': 'do_objectID',
@@ -98,6 +106,23 @@ class SketchPen(AbstractPen):
   def points(self):
     return points
 
+def _bbox(layers):
+  """Find box containing all the points in layers (curves could go out)."""
+  minx = miny = maxx = maxy = 0
+  for layer in layers:
+    for curve_point in layer.points:
+      minx = min(minx, curve_point.point.x)
+      miny = min(miny, curve_point.point.y)
+      maxx = max(maxx, curve_point.point.x)
+      maxy = max(maxy, curve_point.point.y)
+    minx2, miny2, maxx2, maxy2 = _bbox(layer.layers)
+    minx = min(minx, minx2)
+    miny = min(miny, miny2)
+    maxx = max(maxx, maxx2)
+    maxy = max(maxy, maxy2)
+  return (minx, miny, maxx, maxy)
+
+
 def _read_json(zip_file, path):
   with zip_file.open(path) as f:
     return json.loads(f.read())
@@ -108,14 +133,17 @@ def _resolve_ref(zip_file, json_obj):
   target = json_obj.get('_ref') + '.json'
   return _read_json(zip_file, target)
 
-def _load_sketch_json(zip_file, json_obj, tuple_type):
+def _load_sketch_json(zip_file, json_obj, data_class):
   json_obj = _resolve_ref(zip_file, json_obj)
   values = []
-  for field_name, field_type in tuple_type._field_types.items():
+
+  for field in dataclasses.fields(data_class):
+    field_type = field.type
     if isinstance(field_type, typing.ForwardRef):
       field_type = field_type._evaluate(globals(), locals())
-    json_field = _FIELD_MAP.get(field_name, field_name)
+    json_field = _FIELD_MAP.get(field.name, field.name)
     json_value = json_obj.get(json_field, None)
+
     if getattr(field_type, '__origin__', field_type) == list:
       item_type = field_type.__args__[0]
       a_list = list()
@@ -125,11 +153,11 @@ def _load_sketch_json(zip_file, json_obj, tuple_type):
       values.append(a_list)
     elif hasattr(field_type, '_parse'):
       values.append(field_type._parse(json_value))
-    elif hasattr(field_type, '_field_types'):
+    elif dataclasses.is_dataclass(field_type):
       values.append(_load_sketch_json(zip_file, json_value, field_type))
     else:
       values.append(field_type(json_value))
-  return tuple_type(*values)
+  return data_class(*values)
 
 def _load_sketch_file(src_file):
   with zipfile.ZipFile(src_file) as zip_file:
@@ -142,22 +170,34 @@ def _update_sketch_file(dest_file, doc: Document):
   pass
 
 
-def _print(a_tuple, depth=0):
+def _print(data_obj, depth=0, data_class=None):
+  if not data_class:
+    data_class = type(data_obj)
+  if not dataclasses.is_dataclass(data_class):
+    raise ValueError(f'Unable to identify dataclass for {data_obj}')
+
+  field_types = {f.name: f.type for f in dataclasses.fields(data_class)}
+  field_values = data_obj
+  if dataclasses.is_dataclass(data_obj):
+    field_values = dataclasses.asdict(data_obj)
+
   pad = ' ' * depth
-  print(f'{pad}{type(a_tuple).__name__}')
+  print(f'{pad}{data_class.__name__}')
   depth += 2
   pad = ' ' * depth
-  for idx, (field_name, field_type) in enumerate(a_tuple._field_types.items()):
+
+  for field_name in sorted(field_values.keys()):
+    field_type = field_types[field_name]
+    field_value = field_values[field_name]
     if isinstance(field_type, typing.ForwardRef):
       field_type = field_type._evaluate(globals(), locals())
-    field_value = a_tuple[idx]
-    if getattr(field_type, '__origin__', field_type) == list:
+    if isinstance(field_value, list):
       print(f'{pad}{field_name} =')
       for list_item in field_value:
-        _print(list_item, depth + 2)
-    elif hasattr(field_type, '_field_types'):
+        _print(list_item, depth=depth + 2, data_class=field_type.__args__[0])
+    elif dataclasses.is_dataclass(field_type):
       print(f'{pad}{field_name} =')
-      _print(field_value, depth + 2)
+      _print(field_value, depth=depth + 2, data_class=field_type)
     else:
       print(f'{pad}{field_name} = {field_value}')
 
@@ -173,7 +213,14 @@ def main(argv):
     path = SVGPath(FLAGS.input)
     path.draw(pen)
 
-    _print(Layer('artboard', 'Artboard', Rectangle(0, 0, 10, 20), [], pen.points))
+    icon_layer = Layer('artboard', 'Icons', Rectangle(0, 0, 10, 20), [], pen.points)
+
+    doc = _load_sketch_file(_BLANK_SKETCH_FILE)
+    doc.pages[0].layers.append(icon_layer)
+    doc.pages[0].frame = Rectangle(*_bbox(doc.pages[0].layers))
+
+    print(dataclasses.asdict(doc))
+    _print(doc)
   else:
     raise ValueError(f'What to do with {FLAGS.input}')
 
