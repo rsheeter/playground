@@ -35,7 +35,7 @@ class Point:
   y: float = 0
 
   # init from a sketch file point: {x, y}
-  def _parse(point_str):
+  def _parse(point_str: str):
     x, y = [float(s) for s in point_str[1:-1].split(',')]
     return Point(x, y)
 
@@ -49,7 +49,7 @@ class CurvePoint:
 # https://developer.sketch.com/reference/api/#layer
 @dataclasses.dataclass
 class Layer:
-  id: str
+  do_objectID: str
   name: str
   frame: Rectangle = Rectangle()
   layers: typing.List['Layer'] = dataclasses.field(default_factory=list)
@@ -58,19 +58,33 @@ class Layer:
 # https://developer.sketch.com/reference/api/#page
 @dataclasses.dataclass
 class Page:
-  id: str
+  do_objectID: str
   name: str
   layers: typing.List[Layer] = dataclasses.field(default_factory=list)
   frame: Rectangle = Rectangle()
 
 @dataclasses.dataclass
+class PageRef:
+  _class: str = 'MSJSONFileReference'
+  _ref_class: str = 'MSImmutablePage'
+  _ref: str = ''
+
+  def to(page: Page):
+    return PageRef(_ref=f'pages/{page.do_objectID}.json')
+
+
+@dataclasses.dataclass
 class Document:
-  id: str
+  do_objectID: str
+  pages: typing.List[PageRef] = dataclasses.field(default_factory=list)
+
+@dataclasses.dataclass
+class SketchFile:
+  document: Document
   pages: typing.List[Page] = dataclasses.field(default_factory=list)
 
-_FIELD_MAP = {
-  'id': 'do_objectID',
-}
+  def update_refs(self):
+    pages = [PageRef.to(p) for p in self.pages]
 
 # ref fonttools/Lib/fontTools/pens/basePen.py 
 class SketchPen(AbstractPen):
@@ -127,47 +141,54 @@ def _read_json(zip_file, path):
   with zip_file.open(path) as f:
     return json.loads(f.read())
 
-def _resolve_ref(zip_file, json_obj):
-  if not json_obj.get('_class', None) == 'MSJSONFileReference':
-    return json_obj
-  target = json_obj.get('_ref') + '.json'
-  return _read_json(zip_file, target)
-
-def _load_sketch_json(zip_file, json_obj, data_class):
-  json_obj = _resolve_ref(zip_file, json_obj)
+def _load_sketch_json(json_obj, data_class):
   values = []
 
   for field in dataclasses.fields(data_class):
     field_type = field.type
     if isinstance(field_type, typing.ForwardRef):
       field_type = field_type._evaluate(globals(), locals())
-    json_field = _FIELD_MAP.get(field.name, field.name)
-    json_value = json_obj.get(json_field, None)
+    json_value = json_obj.get(field.name, None)
 
     if getattr(field_type, '__origin__', field_type) == list:
       item_type = field_type.__args__[0]
       a_list = list()
       if json_value:
         for json_list_item in json_value:
-          a_list.append(_load_sketch_json(zip_file, json_list_item, item_type))
+          a_list.append(_load_sketch_json(json_list_item, item_type))
       values.append(a_list)
     elif hasattr(field_type, '_parse'):
       values.append(field_type._parse(json_value))
     elif dataclasses.is_dataclass(field_type):
-      values.append(_load_sketch_json(zip_file, json_value, field_type))
+      values.append(_load_sketch_json(json_value, field_type))
     else:
       values.append(field_type(json_value))
   return data_class(*values)
 
-def _load_sketch_file(src_file):
+def _read_sketch_file(src_file):
   with zipfile.ZipFile(src_file) as zip_file:
     json_doc = _read_json(zip_file, 'document.json')
-    return _load_sketch_json(zip_file, json_doc, Document)
+    doc = _load_sketch_json(json_doc, Document)
+    _print(doc)
+    pages = [_load_sketch_json(_read_json(zip_file, r._ref + '.json'), Page)
+             for r in doc.pages]
+  return SketchFile(doc, pages)
 
-def _update_sketch_file(dest_file, doc: Document):
-  # align Document with dest contents, including reversing refs (only pages?)
+def _write_sketch_file(dest_file, sketch_file: SketchFile):
   # write updates into dest
-  pass
+
+  sketch_file.update_refs()
+
+  doc_dest = os.path.join(dest_file, 'document.json')
+  print(f'Write {doc_dest}')
+  with open(doc_dest, 'w') as f:
+    json.dump(dataclasses.asdict(sketch_file.document), f, indent=2)
+
+  for page in sketch_file.pages:
+    page_dest = os.path.join(dest_file, f'{page.do_objectID}.json')
+    print(f'Write {page_dest}')
+    with open(page_dest, 'w') as f:
+      json.dump(dataclasses.asdict(page), f, indent=2)
 
 
 def _print(data_obj, depth=0, data_class=None):
@@ -180,6 +201,11 @@ def _print(data_obj, depth=0, data_class=None):
   field_values = data_obj
   if dataclasses.is_dataclass(data_obj):
     field_values = dataclasses.asdict(data_obj)
+
+  print('PRINT')
+  print(data_class)
+  print(field_types)
+  print(field_values)
 
   pad = ' ' * depth
   print(f'{pad}{data_class.__name__}')
@@ -205,8 +231,10 @@ def _print(data_obj, depth=0, data_class=None):
 def main(argv):
   _, ext = os.path.splitext(FLAGS.input)
   if ext == '.sketch':
-    doc = _load_sketch_file(FLAGS.input)
+    doc = _read_sketch_file(FLAGS.input)
     _print(doc)
+
+    _write_sketch_file('/tmp/test.sketch', doc)
   elif ext == '.svg':
     pen = SketchPen()
 
@@ -215,7 +243,7 @@ def main(argv):
 
     icon_layer = Layer('artboard', 'Icons', Rectangle(0, 0, 10, 20), [], pen.points)
 
-    doc = _load_sketch_file(_BLANK_SKETCH_FILE)
+    doc = _read_sketch_file(_BLANK_SKETCH_FILE)
     doc.pages[0].layers.append(icon_layer)
     doc.pages[0].frame = Rectangle(*_bbox(doc.pages[0].layers))
 
