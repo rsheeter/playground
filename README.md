@@ -1,4 +1,4 @@
-[![Travis Build Status](https://travis-ci.org/googlefonts/nototools.svg)](https://travis-ci.org/googlefonts/nototools)
+[![Travis Build Status](https://travis-ci.org/rsheeter/playground.svg)](https://travis-ci.org/rsheeter/playground)
 
 # playground
 scratch space
